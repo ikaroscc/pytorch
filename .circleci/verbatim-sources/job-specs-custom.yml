@@ -12,6 +12,8 @@
     - attach_workspace:
         at: ~/workspace
     - run:
+        <<: *should_run_job
+    - run:
         <<: *setup_linux_system_environment
     - run:
         <<: *setup_ci_environment
@@ -46,6 +48,8 @@
     steps:
     - attach_workspace:
         at: ~/workspace
+    - run:
+        <<: *should_run_job
     - run:
         <<: *setup_linux_system_environment
     - run:
@@ -104,6 +108,12 @@
 
             export IN_CIRCLECI=1
 
+            # Persist should_run_job.sh to the workspace so test can
+            # run even if should_run_job.sh bugs out
+            mkdir -p /Users/distiller/pytorch-ci-env/workspace/.circleci/.scripts
+            cp .circleci/scripts/should_run_job.sh /Users/distiller/pytorch-ci-env/workspace/.circleci/.scripts
+            source .circleci/scripts/should_run_job.sh
+
             # Install sccache
             sudo curl https://s3.amazonaws.com/ossci-macos/sccache --output /usr/local/bin/sccache
             sudo chmod +x /usr/local/bin/sccache
@@ -117,8 +127,6 @@
 
             chmod a+x .jenkins/pytorch/macos-build.sh
             unbuffer .jenkins/pytorch/macos-build.sh 2>&1 | ts
-
-            mkdir -p /Users/distiller/pytorch-ci-env/workspace
 
             # copy with -a to preserve relative structure (e.g., symlinks), and be recursive
             cp -a /Users/distiller/project/. /Users/distiller/pytorch-ci-env/workspace
@@ -152,6 +160,8 @@
             # copy with -a to preserve relative structure (e.g., symlinks), and be recursive
             cp -a /Users/distiller/pytorch-ci-env/workspace/. /Users/distiller/project
 
+            source .circleci/scripts/should_run_job.sh
+
             chmod a+x .jenkins/pytorch/macos-test.sh
             unbuffer .jenkins/pytorch/macos-test.sh 2>&1 | ts
 
@@ -160,6 +170,8 @@
       xcode: "9.0"
     steps:
       - checkout
+      - run:
+          <<: *should_run_job
       - run:
           <<: *macos_brew_update
       - run:
